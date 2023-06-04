@@ -11,16 +11,18 @@ import Foundation
 // NavigationController or Storyboard Segue Coordinator
 protocol Router {
 
+    typealias AnswerCallback = (String) -> Void
+
     func routeTo(
         question: String,
-        answerCallback: @escaping (String) -> Void
+        answerCallback: @escaping AnswerCallback
     )
 }
 
 class Flow {
 
-    let router: Router
-    let questions: [String]
+    private let router: Router
+    private let questions: [String]
 
     init(router: Router, questions: [String]) {
         self.router = router
@@ -29,19 +31,20 @@ class Flow {
 
     func start() {
         if let firstQuestion = questions.first {
-            router.routeTo(
-                question: firstQuestion
-            ) { [weak self] _ in
-                guard let self else { return }
-                let firstQuestionIndex = self.questions.firstIndex(of: firstQuestion)!
-                let nextQuestion = self.questions[firstQuestionIndex+1]
-                self.router.routeTo(
-                    question: nextQuestion
-                ) { _ in }
+            router.routeTo(question: firstQuestion) { [weak self] _ in
+                self?.routeToNext(from: firstQuestion)
             }
         }
-//        questions.forEach {
-//            router.routeTo(question: $0)
-//        }
+    }
+
+    private func routeToNext(from question: String) {
+        if
+            let currentQuestionIndex = questions.firstIndex(of: question),
+            currentQuestionIndex + 1 < questions.count {
+            let nextQuestion = questions[currentQuestionIndex+1]
+            self.router.routeTo(question: nextQuestion) { [weak self] _ in
+                self?.routeToNext(from: nextQuestion)
+            }
+        }
     }
 }
